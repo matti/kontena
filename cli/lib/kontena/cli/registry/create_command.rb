@@ -15,6 +15,7 @@ module Kontena::Cli::Registry
     option '--s3-v4auth', :flag, 'Use v4auth on S3', default: false
     option '--azure-account-name', 'AZURE_ACCOUNT_NAME', 'Azure account name'
     option '--azure-container-name', 'AZURE_CONTAINER_NAME', 'Azure container name'
+    option '--port', 'PORT', 'Publish registry to the host'
 
     def execute
       require_api_url
@@ -86,6 +87,14 @@ module Kontena::Cli::Registry
       end
       env << "REGISTRY_HTTP_SECRET=#{SecureRandom.hex(24)}"
 
+      ports = if port
+        [
+          { node_port: "#{port}", container_port: "80" }
+        ]
+      else
+        nil
+      end
+
       data = {
           name: 'registry',
           stateful: stateful,
@@ -94,7 +103,8 @@ module Kontena::Cli::Registry
           volumes: ['/registry'],
           env: env,
           secrets: secrets,
-          affinity: affinity
+          affinity: affinity,
+          ports: ports
       }
       client(token).post("grids/#{current_grid}/services", data)
       client(token).post("services/#{current_grid}/registry/deploy", {})
